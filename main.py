@@ -11,12 +11,10 @@ import sys
 from typing import Iterable
 
 from _version import __version__
+from rgw_cli_contract import AppSpec, resolve_install_script_path, run_app
 
 
 APP_NAME = "py"
-APP_ROOT = Path(__file__).resolve().parent
-ANSI_GRAY = "\033[38;5;245m"
-ANSI_RESET = "\033[0m"
 SYSTEM_SELECTOR = "s"
 
 HELP_TEXT = """py
@@ -65,16 +63,6 @@ class Runtime:
         return f"{major}.{minor}"
 
 
-def muted(text: str) -> str:
-    if not sys.stdout.isatty() or "NO_COLOR" in os.environ:
-        return text
-    return f"{ANSI_GRAY}{text}{ANSI_RESET}"
-
-
-def print_help() -> None:
-    print(muted(HELP_TEXT.rstrip()))
-
-
 def home_dir() -> Path:
     return Path(os.environ.get("HOME", str(Path.home()))).expanduser()
 
@@ -83,13 +71,11 @@ def mise_python_root() -> Path:
     return home_dir() / ".local" / "share" / "mise" / "installs" / "python"
 
 
-def install_script_path() -> Path:
+def app_install_script_path() -> Path:
     override = os.environ.get("PY_INSTALL_SCRIPT")
     if override:
         return Path(override)
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent / "install.sh"
-    return APP_ROOT / "install.sh"
+    return resolve_install_script_path(__file__)
 
 
 def parse_version(value: str) -> tuple[int, int, int]:
@@ -294,21 +280,16 @@ def list_runtimes() -> int:
     return 0
 
 
-def upgrade_app() -> int:
-    return subprocess.call([str(install_script_path()), "-u"])
+APP_SPEC = AppSpec(
+    app_name=APP_NAME,
+    version=__version__,
+    help_text=HELP_TEXT,
+    install_script_path=app_install_script_path(),
+    no_args_mode="help",
+)
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = list(sys.argv[1:] if argv is None else argv)
-
-    if not args or args == ["-h"]:
-        print_help()
-        return 0
-    if args == ["-v"]:
-        print(__version__)
-        return 0
-    if args == ["-u"]:
-        return upgrade_app()
+def dispatch(args: list[str]) -> int:
     if args == ["ls"]:
         return list_runtimes()
     if args == ["which"]:
@@ -326,4 +307,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(run_app(APP_SPEC, sys.argv[1:], dispatch))

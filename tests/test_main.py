@@ -54,6 +54,11 @@ class MainContractTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout.strip(), "0.0.0")
 
+    def test_help_has_no_ansi_styling(self) -> None:
+        result = run_app("-h")
+        self.assertEqual(result.returncode, 0)
+        self.assertNotIn("\x1b", result.stdout)
+
     def test_upgrade_invokes_install_script_with_dash_u(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             marker = Path(temp_dir) / "marker.txt"
@@ -80,7 +85,7 @@ class MainContractTests(unittest.TestCase):
         with mock.patch.object(MAIN_MODULE.sys, "frozen", True, create=True):
             with mock.patch.object(MAIN_MODULE.sys, "executable", "/tmp/py/py"):
                 self.assertEqual(
-                    MAIN_MODULE.install_script_path(),
+                    MAIN_MODULE.app_install_script_path(),
                     Path("/tmp/py/install.sh"),
                 )
 
