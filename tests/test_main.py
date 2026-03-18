@@ -1,13 +1,22 @@
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 MAIN = APP_ROOT / "main.py"
+
+sys.path.insert(0, str(APP_ROOT))
+SPEC = importlib.util.spec_from_file_location("py_main_under_test", MAIN)
+MAIN_MODULE = importlib.util.module_from_spec(SPEC)
+assert SPEC is not None and SPEC.loader is not None
+sys.modules[SPEC.name] = MAIN_MODULE
+SPEC.loader.exec_module(MAIN_MODULE)
 
 
 def run_app(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -66,6 +75,14 @@ class MainContractTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0)
             self.assertEqual(marker.read_text(encoding="utf-8").strip(), "-u")
+
+    def test_frozen_install_script_path_uses_executable_directory(self) -> None:
+        with mock.patch.object(MAIN_MODULE.sys, "frozen", True, create=True):
+            with mock.patch.object(MAIN_MODULE.sys, "executable", "/tmp/py/py"):
+                self.assertEqual(
+                    MAIN_MODULE.install_script_path(),
+                    Path("/tmp/py/install.sh"),
+                )
 
     def test_minor_selector_emits_shell_script_and_scrubs_stale_python_bin(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

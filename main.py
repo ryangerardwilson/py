@@ -85,7 +85,11 @@ def mise_python_root() -> Path:
 
 def install_script_path() -> Path:
     override = os.environ.get("PY_INSTALL_SCRIPT")
-    return Path(override) if override else APP_ROOT / "install.sh"
+    if override:
+        return Path(override)
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent / "install.sh"
+    return APP_ROOT / "install.sh"
 
 
 def parse_version(value: str) -> tuple[int, int, int]:
