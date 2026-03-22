@@ -14,9 +14,11 @@ Or install from GitHub:
 curl -fsSL https://raw.githubusercontent.com/ryangerardwilson/py/main/install.sh | bash
 ```
 
-After install, open a new shell or run:
+Then add these lines to `~/.bashrc` manually and reload your shell:
 
 ```bash
+export PATH="$HOME/.py/bin:$PATH"
+[ -r "$HOME/.py/app/py/shell/py.bash" ] && source "$HOME/.py/app/py/shell/py.bash"
 source ~/.bashrc
 ```
 

@@ -24,7 +24,7 @@ Options:
   -h                         Show this help and exit
   -v [<version>]             Print the latest release version, or install a specific one
   -u                         Upgrade to the latest release only when newer
-  -n                         Do not modify shell config to add PATH and shell hook lines
+  -n                         Compatibility no-op; installer never modifies shell config
       --help                 Compatibility alias for -h
       --version [<version>]  Compatibility alias for -v
       --upgrade              Compatibility alias for -u
@@ -35,7 +35,6 @@ EOF
 requested_version=${VERSION:-}
 show_latest=false
 upgrade=false
-no_modify_path=false
 latest_version_cache=""
 
 while [[ $# -gt 0 ]]; do
@@ -58,7 +57,6 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -n|--no-modify-path)
-      no_modify_path=true
       shift
       ;;
     *)
@@ -91,75 +89,14 @@ EOF
   chmod 755 "${INSTALL_DIR}/${APP}"
 }
 
-append_line_once() {
-  local file=$1
-  local line=$2
-  touch "$file"
-  if grep -Fxq "$line" "$file" 2>/dev/null; then
-    return 0
-  fi
-  {
-    echo ""
-    echo "$line"
-  } >> "$file"
-}
-
-configure_shell() {
-  local current_shell
-  local config_file=""
-  local shell_source_line="[ -r \"$HOOK_PATH\" ] && source \"$HOOK_PATH\""
-  local path_line="export PATH=$INSTALL_DIR:\$PATH"
-  local -a config_candidates=()
-
-  current_shell=$(basename "${SHELL:-bash}")
-  XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
-
-  case "$current_shell" in
-    zsh)
-      config_candidates=("$HOME/.zshrc" "$HOME/.zshenv" "$XDG_CONFIG_HOME/zsh/.zshrc" "$XDG_CONFIG_HOME/zsh/.zshenv")
-      ;;
-    bash)
-      config_candidates=("$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile" "$XDG_CONFIG_HOME/bash/.bashrc" "$XDG_CONFIG_HOME/bash/.bash_profile")
-      ;;
-    fish)
-      config_candidates=("$HOME/.config/fish/config.fish")
-      ;;
-    *)
-      config_candidates=("$HOME/.bashrc" "$HOME/.profile")
-      ;;
-  esac
-
-  for file in "${config_candidates[@]}"; do
-    if [[ -f "$file" ]]; then
-      config_file="$file"
-      break
-    fi
-  done
-
-  if [[ -z "$config_file" ]]; then
-    config_file="${config_candidates[0]}"
-  fi
-
-  mkdir -p "$(dirname "$config_file")"
-
-  if [[ "$current_shell" == "fish" ]]; then
-    append_line_once "$config_file" "fish_add_path $INSTALL_DIR"
-    print_message info "${MUTED}Added ${NC}${INSTALL_DIR}${MUTED} to ${NC}$config_file"
-    print_message info "${MUTED}Add this manually for shell switching:${NC}"
-    print_message info "  source $HOOK_PATH"
-    return 0
-  fi
-
-  append_line_once "$config_file" "$path_line"
-  append_line_once "$config_file" "$shell_source_line"
-  print_message info "${MUTED}Updated shell config:${NC} $config_file"
-}
-
 finalize_install() {
   write_launcher
-  if [[ "$no_modify_path" != "true" ]]; then
-    configure_shell
-  fi
+}
+
+print_manual_shell_steps() {
+  print_message info "${MUTED}Manually add to ~/.bashrc:${NC} export PATH=$INSTALL_DIR:\$PATH"
+  print_message info "${MUTED}Manually add to ~/.bashrc:${NC} [ -r \"$HOOK_PATH\" ] && source \"$HOOK_PATH\""
+  print_message info "${MUTED}Reload your shell:${NC} source ~/.bashrc"
 }
 
 get_latest_version() {
@@ -191,6 +128,7 @@ if $upgrade; then
     installed_version="${installed_version#v}"
     if [[ -n "$installed_version" && "$installed_version" == "$requested_version" ]]; then
       finalize_install
+      print_manual_shell_steps
       print_message info "${MUTED}${APP} version ${NC}${requested_version}${MUTED} already installed${NC}"
       exit 0
     fi
@@ -233,6 +171,7 @@ if command -v "${APP}" >/dev/null 2>&1; then
   installed_version="${installed_version#v}"
   if [[ -n "$installed_version" && "$installed_version" == "$specific_version" ]]; then
     finalize_install
+    print_manual_shell_steps
     print_message info "${MUTED}${APP} version ${NC}${specific_version}${MUTED} already installed${NC}"
     exit 0
   fi
@@ -262,11 +201,5 @@ mv "$tmp_dir/${APP}" "$APP_DIR"
 rm -rf "$tmp_dir"
 
 finalize_install
-
-if [[ "$no_modify_path" == "true" ]]; then
-  print_message info "${MUTED}Manually add to PATH:${NC} export PATH=$INSTALL_DIR:\$PATH"
-  print_message info "${MUTED}Manually source shell hook:${NC} [ -r \"$HOOK_PATH\" ] && source \"$HOOK_PATH\""
-else
-  print_message info "${MUTED}Reload your shell:${NC} source ~/.bashrc"
-fi
+print_manual_shell_steps
 print_message info "${MUTED}Run:${NC} py -h"

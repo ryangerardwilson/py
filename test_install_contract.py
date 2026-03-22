@@ -46,7 +46,7 @@ class InstallContractTests(unittest.TestCase):
 
             self.assertEqual(result.stdout.strip(), "0.1.0")
 
-    def test_upgrade_same_version_uses_dash_v_and_adds_hook_line(self) -> None:
+    def test_upgrade_same_version_uses_dash_v_and_prints_manual_shell_steps(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             bin_dir = tmp_path / "bin"
@@ -91,9 +91,9 @@ class InstallContractTests(unittest.TestCase):
             )
 
             self.assertIn("already installed", result.stdout)
-            bashrc_text = bashrc.read_text(encoding="utf-8")
-            self.assertIn("export PATH=", bashrc_text)
-            self.assertIn("source", bashrc_text)
+            self.assertIn("export PATH=", result.stdout)
+            self.assertIn("source", result.stdout)
+            self.assertEqual(bashrc.read_text(encoding="utf-8"), "")
 
 
 if __name__ == "__main__":
