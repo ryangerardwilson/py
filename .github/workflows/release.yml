@@ -63,6 +63,7 @@ jobs:
               sed -i -E "s/^__version__ = \".*\"/__version__ = \"${VERSION}\"/" _version.py
 
               "$PYBIN" -m PyInstaller --clean --onedir --name py main.py
+              "$PYBIN" .github/scripts/clear-execstack.py dist/py
               cp install.sh dist/py/
               cp -R shell dist/py/
 
