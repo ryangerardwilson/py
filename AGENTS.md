@@ -21,7 +21,7 @@
 
 ## Shell Integration
 - The user-facing `py` command must work inside an interactive shell.
-- Keep the shell hook in `shell/py.bash` and let the installer source it from shell startup files.
+- Keep the shell hook in `shell/py.bash` and let the installer print the exact manual shell line the user should add.
 - The CLI should emit shell code for selector actions; the shell hook is responsible for `eval`-ing it.
 - Keep help/version/upgrade/list/which behavior directly executable without shell magic.
 

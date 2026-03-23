@@ -14,10 +14,14 @@ Or install from GitHub:
 curl -fsSL https://raw.githubusercontent.com/ryangerardwilson/py/main/install.sh | bash
 ```
 
-Then add these lines to `~/.bashrc` manually and reload your shell:
+The installer keeps the internal runtime under `~/.py` and publishes the
+user-facing command at `~/.local/bin/py`.
+
+If `~/.local/bin` is not already on your `PATH`, add it once to `~/.bashrc`,
+keep the shell hook line below, and reload your shell:
 
 ```bash
-export PATH="$HOME/.py/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 [ -r "$HOME/.py/app/py/shell/py.bash" ] && source "$HOME/.py/app/py/shell/py.bash"
 source ~/.bashrc
 ```
